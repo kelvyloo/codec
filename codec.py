@@ -1,14 +1,10 @@
 
 # coding: utf-8
 
-# # Week 4 Recitation
-# ## Final Project Overview
-# 
-# *This week, we will go over the final project prompt and create a test script together.*
-# 
-# ---
+# # ECES 434 Intro to Applied DSP
+# ## Final Project
 
-# In[1]:
+# In[153]:
 
 
 import librosa
@@ -23,10 +19,10 @@ import IPython.display as ipd
 # ## Import Audio File
 # *Load in an audio file to test with codec.*
 
-# In[2]:
+# In[154]:
 
 
-filename = "taxman.wav"
+filename = "Voices/female3.wav"
 x, sr = librosa.load(filename)
 
 
@@ -35,29 +31,93 @@ x, sr = librosa.load(filename)
 # 
 # *Define your encode and decode functions.*
 
-# In[3]:
+# In[155]:
 
 
-# your encode function here
-def encode(a):
-    a = librosa.resample(a, sr, sr/2)
+# encode function here
+def encode(x, sr=22050, hop=512, n=30):
+    
+    D = librosa.stft(x).T
+    
+    a = np.zeros((D.shape[0], 3, n))
+    
+    q = 3
+    
+    index = 0
+    
+    for dft in D:
+    
+        A = []
+        F = []
+        P = []
+
+        length = np.shape(dft)[0]
+        magSpec = np.abs(dft)
+        phase = np.angle(dft)
+        freq = (np.arange(length)/length) * (sr//2)
+
+        for peak in range(n):
+            i = np.argmax(magSpec)
+            h = magSpec[i]
+            A.append(h)
+            F.append(freq[i])
+            P.append(phase[i])
+            
+            halfWin = int(np.floor(i/(q*2)))
+            rampUp = np.linspace(0, h, halfWin, endpoint=False)
+            rampDown = np.flip(rampUp, axis=0)
+            
+            triangle = np.concatenate([rampUp, np.array(h), rampDown], axis=None)
+            zeros = np.zeros(length)
+            padded = np.concatenate((zeros,triangle,zeros),axis = 0)
+            shift = length + halfWin - i
+            tri = padded[shift:(shift + length)]
+            
+            phase = np.array([0 if magSpec[idx] <= tri[idx] else phase[idx] for idx in range(length)])
+            magSpec = np.array([0 if (magSpec[idx] <= tri[idx]) else magSpec[idx] for idx in range(length)])
+
+        a[index][0] = A
+        a[index][1] = F
+        a[index][2] = P
+
+        index += 1
+    
     return a
 
 
-# In[4]:
+# In[156]:
 
 
-# your decode function here
-def decode(a):
-    a = librosa.resample(a, sr/2, sr)
-    return a
+# decode function here
+def decode(x, sr=22050, hop_size=512, num_freq=30):
+    y_out = np.zeros((1, 0))
+    dur = hop_size/sr
+    
+    for frame in x:
+        amp = frame[0]
+        freq = frame[1]
+        phase = frame[2]
+        
+        t = np.linspace(0, dur, hop_size)
+        
+        freq.shape = (num_freq, 1)
+        amp.shape = (1, num_freq)
+        t.shape = (1, len(t))
+        phase.shape = (num_freq, 1)
+        
+        cos_matrix = np.cos(2 * np.pi * freq * t + phase)
+        cos_sum = np.dot(amp, cos_matrix)
+        
+        y_out = np.concatenate((y_out, cos_sum), axis=1)
+        
+    return y_out
 
 
 # ---
 # ## Runtime
 # *Encode and decode the audio. Time the processes.*
 
-# In[5]:
+# In[157]:
 
 
 # Encode the audio file and also calculate elapsed time
@@ -77,7 +137,7 @@ total_time = decode_elapse_t + encode_elapse_t
 # ## Compression Ratio
 # *Compare the sizes of the original and encoded structures.*
 
-# In[6]:
+# In[158]:
 
 
 def compression_ratio(original, encoded):
@@ -95,17 +155,19 @@ compress_ratio = compression_ratio(x, x_encoded)
 # ## SNR
 # *Compare the original signal content to the decoded version*
 
-# In[7]:
+# In[159]:
 
 
 def signal_to_noise(original, decoded):
+    decoded = np.transpose(decoded)
+    
     # force the signals to be same dimensions
-    length_diff = len(original) - len(decoded)
+    length_diff = len(original) - decoded.shape[0]
     if length_diff < 0:
         decoded = decoded[:-length_diff]
     elif length_diff > 0:
         decoded = np.append(decoded, np.zeros((length_diff, 1)))
-    
+
     # compute SNR
     signal = np.power(original, 2)
     noise = np.power((original - decoded), 2)
@@ -123,7 +185,7 @@ snr = signal_to_noise(x, x_decoded)
 # ## Evaluate Codec
 # *Print out evalutation of codec. Listen to the results*
 
-# In[8]:
+# In[160]:
 
 
 print("Total elapsed time for codec:", total_time)
@@ -133,24 +195,16 @@ print("Compression Ratio:", compress_ratio, "\n")
 print("Signal-to-Noise Ratio (dB):", snr)
 
 
-# In[9]:
+# In[161]:
 
 
 # Original
 ipd.Audio(x, rate = sr)
 
 
-# In[10]:
+# In[162]:
 
 
 # Encoded/Decoded
 ipd.Audio(x_decoded, rate = sr)
 
-
-# ---
-# 
-# ## Small Task
-# 
-# Change the encode function above so that it simply downsamples the signal by a factor of 2. Change the decode function so that it upsamples it back to its original sampling rate. Compute the **compression ratio**, **runtime**, and **SNR** for this compression. Listen to the decoded signal and compare it to the original.
-# 
-# ***Hint:*** You may considering using the librosa.resample() function.
