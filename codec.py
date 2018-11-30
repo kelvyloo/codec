@@ -4,7 +4,7 @@
 # # ECES 434 Intro to Applied DSP
 # ## Final Project: Audio Codec
 
-# In[1]:
+# In[16]:
 
 
 import librosa
@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 # ## Import Audio File
 # *Load in an audio file to test with codec.*
 
-# In[2]:
+# In[17]:
 
 
 #filename = "Voices/female3.wav"
@@ -30,14 +30,14 @@ import matplotlib.pyplot as plt
 #filename = "Voices/female1.wav"
 #filename = "Voices/male2.wav"
 #filename = "Voices/male1.wav"
-#filename = "taxman.wav"
-filename = "jumpman.wav"
-x, sr = librosa.load(filename)
+filename = "taxman.wav"
+#filename = "jumpman.wav"
+x, sr = librosa.load(filename, sr=44100)
 
 
 # ## Encoder/Decoder helper functions
 
-# In[3]:
+# In[18]:
 
 
 def mask(x, sr, num_freq, hop_size):
@@ -96,7 +96,7 @@ def mask(x, sr, num_freq, hop_size):
     return masked_sig
 
 
-# In[4]:
+# In[19]:
 
 
 def unmask(x, sr, num_freq, hop_size):
@@ -132,7 +132,7 @@ def unmask(x, sr, num_freq, hop_size):
     return unmasked_sig
 
 
-# In[5]:
+# In[20]:
 
 
 def compress(x):
@@ -143,7 +143,7 @@ def compress(x):
     return compressed_sig
 
 
-# In[6]:
+# In[21]:
 
 
 def decompress(x):
@@ -154,7 +154,7 @@ def decompress(x):
     return decompressed
 
 
-# In[7]:
+# In[22]:
 
 
 def freq_filter(x, sr, low, high):
@@ -185,11 +185,11 @@ def freq_filter(x, sr, low, high):
 # 
 # *Definitions for encode and decode functions.*
 
-# In[8]:
+# In[23]:
 
 
 # encode function
-def encode(x, sr=22050, num_freq=15, hop_size=1024):
+def encode(x, sr=44100, num_freq=15, hop_size=1024):
     
     x_encoded = compress(x)
     x_encoded = decompress(x_encoded)
@@ -201,11 +201,11 @@ def encode(x, sr=22050, num_freq=15, hop_size=1024):
     return x_encoded
 
 
-# In[9]:
+# In[24]:
 
 
 # decode function
-def decode(x, sr=22050, num_freq=15, hop_size=1024):
+def decode(x, sr=44100, num_freq=15, hop_size=1024):
 
     x_decoded = decompress(x)
     
@@ -222,7 +222,7 @@ def decode(x, sr=22050, num_freq=15, hop_size=1024):
 # ## Runtime
 # *Encode and decode the audio. Time the processes.*
 
-# In[10]:
+# In[25]:
 
 
 # Encode the audio file and also calculate elapsed time
@@ -266,7 +266,7 @@ plt.plot(decoded_freq, decoded_mag);
 # ## Compression Ratio
 # *Compare the sizes of the original and encoded structures.*
 
-# In[11]:
+# In[26]:
 
 
 def compression_ratio(original, encoded):
@@ -284,7 +284,7 @@ compress_ratio = compression_ratio(x, x_encoded)
 # ## SNR
 # *Compare the original signal content to the decoded version*
 
-# In[12]:
+# In[27]:
 
 
 def signal_to_noise(original, decoded):
@@ -307,31 +307,31 @@ def signal_to_noise(original, decoded):
     
     return np.mean(10 * np.log10(signal/noise))
 
-#snr = signal_to_noise(x, x_decoded)
+snr = signal_to_noise(x, x_decoded)
 
 
 # ---
 # ## Evaluate Codec
 # *Print out evalutation of codec. Listen to the results*
 
-# In[13]:
+# In[28]:
 
 
 print("Total elapsed time for codec:", total_time)
 print("\tElapsed time for encode:", encode_elapse_t)
 print("\tElapsed time for decode:", decode_elapse_t, "\n")
 print("Compression Ratio:", compress_ratio, "\n")
-#print("Signal-to-Noise Ratio (dB):", snr)
+print("Signal-to-Noise Ratio (dB):", snr)
 
 
-# In[14]:
+# In[29]:
 
 
 # Original
 ipd.Audio(x, rate = sr)
 
 
-# In[15]:
+# In[30]:
 
 
 # Encoded/Decoded
